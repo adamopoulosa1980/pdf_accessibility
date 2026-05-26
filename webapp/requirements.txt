@@ -1,5 +1,9 @@
 # Web front-end dependencies (in addition to the project's root requirements.txt).
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-python-multipart==0.0.9
-markdown==3.7
+# Version notes:
+#   fastapi 0.116+   -> pulls starlette >=0.40, fixes CVE-2024-47874 / CVE-2025-54121
+#   python-multipart 0.0.18+ -> fixes CVE-2024-53981 / -2026-24486 / -2026-42561 / -2026-40347
+#   markdown 3.8+    -> fixes CVE-2025-69534
+fastapi==0.122.0
+uvicorn[standard]==0.34.0
+python-multipart==0.0.29
+markdown==3.10.2
