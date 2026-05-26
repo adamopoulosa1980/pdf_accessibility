@@ -118,8 +118,9 @@ HTTP API** for CI/CD, and a **command-line tool** / Python library.
 
 > **Reference result, reproducible in 10 minutes.** The repo bundles an
 > actual European Commission publication — *A short guide to the EU*
-> ([examples/](examples/), 36 pages, ~10 MB, public domain) — as a demo
-> input. With default settings the pipeline takes it to **0 of 106
+> ([examples/](examples/), 36 pages, ~10 MB, © European Union 2023,
+> [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
+> see [NOTICE](NOTICE) for full attribution) — as a demo input. With default settings the pipeline takes it to **0 of 106
 > failures on veraPDF PDF/UA-1** and **0 of 1723 failures on veraPDF
 > WTPDF 1.0 Accessibility**. PAC 2024 reports 0 failures plus a few
 > hundred soft *warnings* — soft, human-review tagging-style flags that
@@ -479,9 +480,17 @@ for finding in report.findings:
 The repository ships a real-world test document at
 [examples/a short guide to the eu-NA0522433ENN.pdf](examples/) — the
 European Commission's *A short guide to the EU* (36 pages, ~10 MB,
-public-domain). It has the failure modes that trip naive pipelines:
-untagged decorative graphics, repeating header/footer Form XObjects with
-MCIDs, complex multi-column layouts.
+© European Union 2023, licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
+full attribution in [NOTICE](NOTICE)). It has the failure modes that
+trip naive pipelines: untagged decorative graphics, repeating
+header/footer Form XObjects with MCIDs, complex multi-column layouts.
+
+> **If you redistribute the remediated output**, CC BY 4.0 requires you
+> to credit the European Union and indicate the document has been
+> modified for accessibility. The pipeline's own JSON report and the
+> output filename suffix (`_a11y`) are usually enough to satisfy the
+> "indicate changes" obligation; the attribution line is on you.
 
 ```powershell
 # Install veraPDF first (see "Installing veraPDF" below)

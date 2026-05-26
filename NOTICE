@@ -30,3 +30,54 @@ each upstream project for details.
 
 Maintainer: ASSERT I.K.E. - info@assert.gr
 Source:     https://github.com/adamopoulosa1980/pdf_accessibility
+
+----------------------------------------------------------------------
+
+Bundled example document:
+
+The file examples/a short guide to the eu-NA0522433ENN.pdf is the
+European Commission publication "A Short Guide to the EU".
+
+  Title:     A Short Guide to the EU
+  Author:    European Commission, Directorate-General for Communication
+             Editorial Service & Targeted Outreach, 1049 Brussels, BE
+  Year:      2023
+  Source:    https://op.europa.eu/webpub/com/short-guide-eu/en
+  Mirror:    https://www.eeas.europa.eu/sites/default/files/documents/2024/
+             a%20short%20guide%20to%20the%20eu-NA0522433ENN.pdf
+  ISBN:      978-92-68-07131-1
+  DOI:       10.2775/523891
+  Reference: NA-05-22-433-EN-C
+  Copyright: (C) European Union, 2023
+  Licence:   Creative Commons Attribution 4.0 International (CC BY 4.0)
+             https://creativecommons.org/licenses/by/4.0/
+  Reuse:     Per Commission Decision 2011/833/EU of 12 December 2011
+             on the reuse of Commission documents (OJ L 330, 14.12.2011).
+
+The file is included unmodified, solely as a reproducible demonstration
+input for the pdf_a11y accessibility-remediation pipeline. The
+pipeline's REMEDIATED OUTPUT is a derivative work of this document;
+anyone redistributing that output must comply with CC BY 4.0 by
+crediting the European Union and indicating that the document has
+been modified for accessibility.
+
+Per the document's own colophon: "All photos (C) European Union unless
+otherwise stated. For any use or reproduction of elements that are not
+owned by the European Union, permission may need to be sought directly
+from the respective rightholders."
+
+----------------------------------------------------------------------
+
+Other third-party trademarks referenced in this project's documentation
+for comparison and interoperability purposes only (nominative use):
+
+- Adobe(R), Adobe Acrobat(R), and Autotag(R) are trademarks of
+  Adobe Inc.
+
+- PAC / PDF Accessibility Checker is a trademark of the PDF/UA
+  Foundation (originally axes4 GmbH).
+
+- CommonLook(R) is a trademark of NetCentric Technologies / Allyant.
+
+This project is not affiliated with, endorsed by, certified by, or
+sponsored by any of the above trademark holders.
