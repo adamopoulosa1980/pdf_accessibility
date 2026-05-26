@@ -11,6 +11,11 @@ __pycache__/
 # The pipeline recreates output/ on every run.
 output/
 
+# Python build artefacts (sdist + wheel created by `python -m build`)
+dist/
+build/
+*.egg-info/
+
 # Local conda envs / venvs
 .venv/
 venv/

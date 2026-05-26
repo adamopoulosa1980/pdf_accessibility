@@ -1,0 +1,127 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+# ----------------------------------------------------------------------
+# Project metadata - the PyPI page is built from this section.
+# ----------------------------------------------------------------------
+[project]
+name = "pdf-a11y"
+version = "2.10.0"
+description = "Programmatic PDF accessibility remediation pipeline targeting WCAG 2.2 / PDF/UA-1 (ISO 14289-1) / WTPDF 1.0 Accessibility, validator-verified with veraPDF, fully local."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11"
+authors = [
+    { name = "ASSERT I.K.E.", email = "info@assert.gr" },
+]
+maintainers = [
+    { name = "Alex Adamopoulos", email = "info@assert.gr" },
+]
+keywords = [
+    "pdf",
+    "accessibility",
+    "wcag",
+    "pdf-ua",
+    "wtpdf",
+    "remediation",
+    "verapdf",
+    "section-508",
+    "european-accessibility-act",
+    "a11y",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Markup",
+]
+
+# Direct runtime dependencies. Lower-bound floors picked from the
+# versions currently exercised in Docker/CI; pip's resolver picks
+# something compatible at install time. Pin upper bounds only when an
+# upstream is known to break us.
+dependencies = [
+    "pikepdf>=10.7.2",
+    "PyMuPDF>=1.27.0",
+    "PyYAML>=6.0",
+    "openai>=2.37.0",
+    "anthropic>=0.103.0",
+    "opendataloader-pdf>=2.4.4",
+    "pillow>=12.0.0",
+    "requests>=2.34.0",
+]
+
+[project.optional-dependencies]
+# Install with: pip install "pdf-a11y[webapp]"
+# Brings the FastAPI web app + ASGI server + multipart upload + the
+# markdown renderer used by /help. Not needed for library or CLI use.
+webapp = [
+    "fastapi>=0.122.0",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.29",
+    "markdown>=3.10.2",
+]
+
+# ----------------------------------------------------------------------
+# CLI entry point - `pdf_a11y INPUT.pdf` available after pip install.
+# ----------------------------------------------------------------------
+[project.scripts]
+pdf_a11y = "pdf_a11y.__main__:main"
+
+# ----------------------------------------------------------------------
+# Useful URLs shown on the PyPI sidebar.
+# ----------------------------------------------------------------------
+[project.urls]
+Homepage      = "https://github.com/adamopoulosa1980/pdf_accessibility"
+Repository    = "https://github.com/adamopoulosa1980/pdf_accessibility"
+Issues        = "https://github.com/adamopoulosa1980/pdf_accessibility/issues"
+Documentation = "https://github.com/adamopoulosa1980/pdf_accessibility#readme"
+"Container (GHCR)"     = "https://github.com/adamopoulosa1980/pdf_accessibility/pkgs/container/pdf-accessibility"
+"Container (Docker Hub)" = "https://hub.docker.com/r/adamopoa/pdf-accessibility"
+"Funding (Buy Me a Coffee)" = "https://buymeacoffee.com/alexadamopoulos"
+# Note: PyPI's project-urls field only accepts http(s) URLs. For
+# commercial services (mailto:info@assert.gr) see the README.
+
+# ----------------------------------------------------------------------
+# Hatch build configuration - what ends up in the wheel vs the sdist.
+# ----------------------------------------------------------------------
+[tool.hatch.build.targets.wheel]
+# Wheel = what `pip install pdf-a11y` lands on the user's machine.
+# Only the importable Python package needs to be here.
+packages = ["pdf_a11y"]
+
+[tool.hatch.build.targets.sdist]
+# Source distribution = the full reproducible release. Ships the
+# package + the default config + the veraPDF installer scripts +
+# the license/notice/contribution files. Bundled UI screenshots,
+# example PDF, Docker assets, and the locally-installed veraPDF
+# binaries are deliberately excluded - they bloat the sdist and
+# the library/CLI doesn't need them.
+include = [
+    "/pdf_a11y",
+    "/config/remediation_config.yaml",
+    "/scripts",
+    "/README.md",
+    "/LICENSE",
+    "/NOTICE",
+    "/CONTRIBUTING.md",
+    "/requirements.txt",
+]
+exclude = [
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/*.pyo",
+]

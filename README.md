@@ -1,6 +1,7 @@
 # pdf_a11y — Programmatic PDF Accessibility Remediation
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/pdf-a11y?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/pdf-a11y/)
 [![validated with veraPDF 1.30.1](https://img.shields.io/badge/validated%20with-veraPDF%201.30.1-brightgreen)](#how-we-keep-it-honest)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![GHCR image](https://img.shields.io/badge/ghcr.io-pdf--accessibility-2496ED?logo=docker&logoColor=white)](https://github.com/adamopoulosa1980/pdf_accessibility/pkgs/container/pdf-accessibility)
@@ -92,7 +93,7 @@ forward this page to:
   layouts, scanned PDFs without OCR, MathML, …). Read it before
   budgeting — we would rather lose a deal than ship a surprise.
 
-![pdf_a11y web app — upload form with VLM connection check and the remediation start button](UI.png)
+![pdf_a11y web app — upload form with VLM connection check and the remediation start button](https://raw.githubusercontent.com/adamopoulosa1980/pdf_accessibility/main/UI.png)
 
 ---
 
@@ -286,12 +287,12 @@ docker run -d --name pdf-a11y -p 8000:8000 \
 3. **Start remediation** — a live checklist shows each pipeline step; a large
    document takes 5–10 minutes.
 
-   ![Remediation progress — green-tick checklist of completed pipeline stages with an active veraPDF validation pass](progress.png)
+   ![Remediation progress — green-tick checklist of completed pipeline stages with an active veraPDF validation pass](https://raw.githubusercontent.com/adamopoulosa1980/pdf_accessibility/main/progress.png)
 
 4. **Download** — the remediated PDF plus the veraPDF PDF/UA-1 and WTPDF
    reports, each with a pass/fail badge.
 
-   ![Remediation complete — both PDF/UA-1 and WTPDF 1.0 Accessibility show "compliant" pills, with download cards for the remediated PDF and the two veraPDF reports](results.png)
+   ![Remediation complete — both PDF/UA-1 and WTPDF 1.0 Accessibility show "compliant" pills, with download cards for the remediated PDF and the two veraPDF reports](https://raw.githubusercontent.com/adamopoulosa1980/pdf_accessibility/main/results.png)
 5. **Review image descriptions** *(optional)* — a button on the results card
    opens a thumbnail grid of every image the AI processed. Edit the
    description, mark it decorative, or accept it as-is; clicking **Apply
@@ -332,7 +333,7 @@ to `opendataloader` in the web app (free, local, no keys).
 
 The job API needs no browser. Interactive OpenAPI docs are at **`/docs`**:
 
-![FastAPI auto-generated OpenAPI docs — every endpoint of the headless API listed with try-it-out forms](openapi.png)
+![FastAPI auto-generated OpenAPI docs — every endpoint of the headless API listed with try-it-out forms](https://raw.githubusercontent.com/adamopoulosa1980/pdf_accessibility/main/openapi.png)
 
 | Method & path | Purpose |
 | --- | --- |
@@ -437,12 +438,40 @@ docker run --rm -v "$PWD:/work" -w /work pdf-a11y-remediator:1.0 \
 
 ## Run it 3 — Command line
 
-```bash
-pip install -r requirements.txt
-# Install Java 11+ (for tagging.engine = opendataloader / adobe) — https://adoptium.net
-# Install veraPDF once (see below)
+### Install from PyPI (recommended)
 
-# Everything tunable is in one file:
+```bash
+pip install pdf-a11y           # core library + CLI
+pip install "pdf-a11y[webapp]" # also include the FastAPI web app
+```
+
+Two non-Python runtime dependencies still need to be on the host:
+
+```bash
+# 1. Java 11+ (for tagging.engine = opendataloader / adobe) — https://adoptium.net
+# 2. veraPDF 1.30.1 — run one of the bundled installer scripts:
+.\scripts\install-verapdf.ps1     # Windows
+./scripts/install-verapdf.sh      # Linux / macOS
+```
+
+(The `scripts/` directory is shipped inside the PyPI sdist; you can also
+grab them from the [GitHub repo](https://github.com/adamopoulosa1980/pdf_accessibility/tree/main/scripts).)
+
+### Install from the git clone (active development)
+
+```bash
+git clone https://github.com/adamopoulosa1980/pdf_accessibility.git
+cd pdf_accessibility
+pip install -r requirements.txt
+# Same Java + veraPDF prerequisites as above.
+```
+
+### Run it
+
+```bash
+# Everything tunable is in one file (config/remediation_config.yaml):
+pdf_a11y path/to/document.pdf
+# or, equivalently:
 python -m pdf_a11y path/to/document.pdf
 ```
 
@@ -463,6 +492,10 @@ Output goes to `./output/` by default:
 
 ### As a library
 
+```bash
+pip install pdf-a11y
+```
+
 ```python
 from pdf_a11y import Config, RemediationPipeline
 
@@ -474,6 +507,12 @@ for finding in report.findings:
     if finding.severity == "manual_required":
         print(f"NEEDS REVIEW: [{finding.wcag}] {finding.message}")
 ```
+
+A default config file ships inside the package at
+`config/remediation_config.yaml` — copy it next to your script (or
+point `Config.load(...)` at a custom path) and tune. The veraPDF
+launcher and Java runtime still need to be installed separately;
+see [Installing veraPDF](#installing-verapdf) below.
 
 ### Try it on the bundled example
 
@@ -681,7 +720,7 @@ reviewer audit every AI-generated alt text in a single grid, edit
 descriptions, or mark images decorative — then re-run the pipeline with
 the corrections merged in:
 
-![Review image descriptions — grid of every image the AI processed with its generated alt text, plus per-image Edit description / Mark decorative actions and All / Needs review / Described / Decorative filter tabs](humanintheloop.jpg)
+![Review image descriptions — grid of every image the AI processed with its generated alt text, plus per-image Edit description / Mark decorative actions and All / Needs review / Described / Decorative filter tabs](https://raw.githubusercontent.com/adamopoulosa1980/pdf_accessibility/main/humanintheloop.jpg)
 
 For the headless / CLI path:
 
