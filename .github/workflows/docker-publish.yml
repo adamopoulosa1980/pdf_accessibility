@@ -61,13 +61,14 @@ jobs:
           images: |
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
             ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
-          # `latest` on the default branch + the literal vX.Y(.Z) tag on
-          # tag pushes. `edge` on main pushes (for nightly testers).
+          # On any v* tag push: emit the literal git tag as the docker tag
+          # (works for both v2.3 and v2.3.0 styles — `type=semver` requires
+          # X.Y.Z and silently produces nothing for two-part versions) and
+          # also refresh :latest. Manual workflow_dispatch on main → :edge.
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=branch,enable={{is_default_branch}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=raw,value=edge,enable=${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
