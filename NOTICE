@@ -13,6 +13,12 @@ External tooling invoked at runtime (not bundled in source form):
   Installed at runtime via the bundled scripts/install-verapdf.{sh,ps1}
   or by the Docker image's build step.
 
+  "veraPDF" is a trademark of the veraPDF Consortium / the PDF
+  Association. This project uses the name nominatively to identify
+  the validator it invokes. This project is not affiliated with,
+  endorsed by, certified by, or sponsored by the veraPDF Consortium
+  or the PDF Association.
+
 - opendataloader-pdf (structure tagger)
   https://github.com/opendataloader-project/opendataloader-pdf
   Apache License 2.0

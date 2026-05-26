@@ -1,7 +1,7 @@
 # pdf_a11y — Programmatic PDF Accessibility Remediation
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![veraPDF 1.30.1 verified](https://img.shields.io/badge/veraPDF-1.30.1%20verified-brightgreen)](https://verapdf.org/)
+[![validated with veraPDF 1.30.1](https://img.shields.io/badge/validated%20with-veraPDF%201.30.1-brightgreen)](#how-we-keep-it-honest)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![GHCR image](https://img.shields.io/badge/ghcr.io-pdf--accessibility-2496ED?logo=docker&logoColor=white)](https://github.com/adamopoulosa1980/pdf_accessibility/pkgs/container/pdf-accessibility)
 [![Docker Hub image](https://img.shields.io/docker/v/adamopoa/pdf-accessibility?logo=docker&label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/adamopoa/pdf-accessibility)
