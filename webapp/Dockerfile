@@ -59,11 +59,14 @@ RUN cd /tmp \
 WORKDIR /app
 COPY requirements.txt ./requirements.txt
 COPY webapp/requirements.txt ./webapp-requirements.txt
-# Upgrade pip first — base images can ship pip versions with their own
-# CVEs (CVE-2026-3219 / CVE-2026-6357 hit pip 26.0.1). The current pip
-# release always patches its own past issues, so this guarantees Scout
-# sees a clean pip regardless of the base image's vintage.
-RUN pip install --no-cache-dir --upgrade pip \
+# Upgrade pip, setuptools, AND wheel first. Base images bundle all three
+# pre-installed, and each carries CVEs from time to time:
+#   pip      - CVE-2026-3219, CVE-2026-6357 (3.13-slim's pip 26.0.1)
+#   wheel    - CVE-2026-24049 (3.11-slim's wheel 0.45.x)
+#   setuptools - has historically had its own (covered for completeness)
+# Refreshing all three to current upstream patches the bundled-tooling
+# layer regardless of which base image we sit on.
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir -r requirements.txt -r webapp-requirements.txt
 
 # --- Application code -------------------------------------------------------
