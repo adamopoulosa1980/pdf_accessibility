@@ -9,22 +9,32 @@
 # Build from the PROJECT ROOT (the build context must include pdf_a11y/):
 #   docker build -f webapp/Dockerfile -t pdf-a11y-remediator:1.0 .
 # ============================================================================
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # --- OS packages ------------------------------------------------------------
 # default-jre-headless : Java for opendataloader-pdf and veraPDF
-# curl / unzip         : fetch + unpack the veraPDF installer
 # tini                 : init process that reaps Java/veraPDF subprocesses
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# ca-certificates      : TLS roots
+# curl / unzip         : build-time only, used to fetch + unpack veraPDF
+#                        and PURGED before the image is committed (keeps
+#                        libcurl / libunzip CVEs out of the runtime).
+#
+# `apt-get upgrade` is opt-in: pulls every Debian security patch published
+# since the base image was built. Slim images go weeks between rebuilds, so
+# this catches what the upstream tag hasn't refreshed yet.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
         default-jre-headless \
-        curl \
-        unzip \
         ca-certificates \
         tini \
+        curl \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # --- veraPDF 1.30.1 ---------------------------------------------------------
 # Headless install via the izpack automated installer into /opt/verapdf.
+# Same RUN finishes by purging curl + unzip so they aren't in the final
+# image. (Healthcheck uses Python's stdlib instead — see HEALTHCHECK below.)
 COPY webapp/verapdf-auto-install.xml /tmp/verapdf-auto-install.xml
 RUN cd /tmp \
     && curl -fsSL -o verapdf.zip \
@@ -36,7 +46,9 @@ RUN cd /tmp \
     && chmod +x /opt/verapdf/verapdf \
     && test -x /opt/verapdf/verapdf \
     && rm -rf /tmp/verapdf.zip /tmp/verapdf-greenfield-1.30.1 \
-              /tmp/verapdf-auto-install.xml
+              /tmp/verapdf-auto-install.xml \
+    && apt-get purge -y --auto-remove curl unzip \
+    && rm -rf /var/lib/apt/lists/*
 
 # --- Python dependencies (own layer so code edits don't re-install) ---------
 WORKDIR /app
@@ -71,8 +83,12 @@ EXPOSE 8000
 WORKDIR /app/webapp
 USER pdfa11y
 
+# Healthcheck via Python's urllib so the image doesn't need to keep curl
+# (and its libcurl CVE surface) just for liveness probes.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS http://localhost:8000/health || exit 1
+    CMD python -c "import urllib.request,sys;\
+sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=4).status==200 else 1)" \
+        || exit 1
 
 ENTRYPOINT ["tini", "--"]
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

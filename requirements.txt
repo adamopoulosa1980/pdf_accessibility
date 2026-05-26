@@ -15,7 +15,7 @@ lxml==6.1.1
 openai==2.37.0
 opendataloader-pdf==2.4.4
 packaging==26.0
-pikepdf==10.7.0
+pikepdf==10.7.2
 pillow==12.2.0
 pydantic==2.13.4
 pydantic_core==2.46.4

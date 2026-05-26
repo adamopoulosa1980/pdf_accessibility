@@ -709,6 +709,48 @@ offers commercial services:
 
 ---
 
+## Container security posture
+
+The published Docker images (`ghcr.io/adamopoulosa1980/pdf-accessibility`,
+`adamopoa/pdf-accessibility`) are continuously scanned by Docker Scout.
+What we **actively eliminate** on every release:
+
+- **Application CVEs** — Python package pins are bumped any time Docker
+  Scout flags a CVE with an upstream fix (see `webapp/requirements.txt`).
+  v2.4 cleared 4 High + 3 Medium CVEs from `python-multipart`, `starlette`,
+  and `markdown`.
+- **Base-image CVEs that have a Debian backport** — the Dockerfile runs
+  `apt-get upgrade -y` so each build pulls every available patch since the
+  upstream `python:3.13-slim` was last refreshed.
+- **Build-time-only tools** — `curl` and `unzip` are installed only long
+  enough to fetch veraPDF, then purged in the same layer so they aren't
+  part of the runtime attack surface.
+- **Healthcheck without `curl`** — uses Python's `urllib` so dropping
+  `curl` doesn't cost us liveness probing.
+
+What **remains** (and why):
+
+A small number of **Low / Unspecified** CVEs in `libldap2`, `libnss3`,
+and similar Debian system libraries persist in the final image. These
+are pulled in transitively by `default-jre-headless` (Java's JNDI / TLS
+plumbing). They are:
+
+1. **Won't-fix upstream.** Debian's security team has triaged each as
+   "minor issue" — no backported patch will ever land.
+2. **Not in the executed code path.** This pipeline never opens an LDAP
+   connection from the JVM, never invokes NSS-based crypto, and serves
+   no untrusted input to either subsystem.
+3. **Visible by design.** We do not mask them via VEX exceptions so
+   downstream operators can make their own evaluation.
+
+If your threat model requires zero Low CVEs (e.g. an air-gapped public-
+sector deployment with no acceptable-risk register), `info@assert.gr`
+can build you a custom image on a hardened JRE base (Eclipse Temurin
+on Ubuntu Noble, or a Distroless multi-stage). Otherwise, the published
+image is fit for production use as-is.
+
+---
+
 ## Liability & disclaimer
 
 **THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
