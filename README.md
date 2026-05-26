@@ -721,7 +721,10 @@ What we **actively eliminate** on every release:
   and `markdown`.
 - **Base-image CVEs that have a Debian backport** — the Dockerfile runs
   `apt-get upgrade -y` so each build pulls every available patch since the
-  upstream `python:3.13-slim` was last refreshed.
+  upstream `python:3.11-slim` (Debian Bookworm) was last refreshed.
+- **Pip self-CVEs** — `pip install --upgrade pip` runs before the project
+  requirements install, so the pip used to resolve our dependencies is
+  always the latest patched release.
 - **Build-time-only tools** — `curl` and `unzip` are installed only long
   enough to fetch veraPDF, then purged in the same layer so they aren't
   part of the runtime attack surface.

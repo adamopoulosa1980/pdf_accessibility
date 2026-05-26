@@ -9,7 +9,12 @@
 # Build from the PROJECT ROOT (the build context must include pdf_a11y/):
 #   docker build -f webapp/Dockerfile -t pdf-a11y-remediator:1.0 .
 # ============================================================================
-FROM python:3.13-slim
+# Base: pinned to python:3.11-slim (Debian Bookworm). Trixie-based tags
+# (3.13-slim, 3.14-slim) were tested in v2.5 and increased the total CVE
+# count rather than reduced it — the newer pip in those tags has its own
+# CVEs, and Trixie's `tar`/`glibc` Lows are not yet backported. Revisit
+# in 3-6 months once Trixie stabilises.
+FROM python:3.11-slim
 
 # --- OS packages ------------------------------------------------------------
 # default-jre-headless : Java for opendataloader-pdf and veraPDF
@@ -54,7 +59,12 @@ RUN cd /tmp \
 WORKDIR /app
 COPY requirements.txt ./requirements.txt
 COPY webapp/requirements.txt ./webapp-requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt -r webapp-requirements.txt
+# Upgrade pip first — base images can ship pip versions with their own
+# CVEs (CVE-2026-3219 / CVE-2026-6357 hit pip 26.0.1). The current pip
+# release always patches its own past issues, so this guarantees Scout
+# sees a clean pip regardless of the base image's vintage.
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt -r webapp-requirements.txt
 
 # --- Application code -------------------------------------------------------
 COPY pdf_a11y/  ./pdf_a11y/
