@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Accessibility Remediator</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1f2733;
+    --muted: #5d6b7e;
+    --line: #dfe4ea;
+    --brand: #1f5c99;
+    --brand-dark: #16456f;
+    --ok: #1a7f37;
+    --okbg: #e7f6ec;
+    --bad: #c0392b;
+    --badbg: #fdecea;
+    --warn: #8a6d00;
+    --warnbg: #fdf6e3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  header h1 { font-size: 26px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); }
+  .help-link {
+    flex: none; margin-top: 4px; white-space: nowrap;
+    color: var(--brand); font-weight: 600; font-size: 14px; text-decoration: none;
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
+    background: #fff;
+  }
+  .help-link:hover { border-color: var(--brand); background: #f7fafd; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 24px; margin-top: 20px;
+    box-shadow: 0 1px 3px rgba(20,40,70,.05);
+  }
+  .card h2 { font-size: 18px; margin: 0 0 16px; }
+  .step { color: var(--brand); font-weight: 700; }
+  label { display: block; font-weight: 600; margin: 16px 0 4px; font-size: 14px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+  input[type=text], input[type=password], select {
+    width: 100%; padding: 9px 11px; font-size: 15px;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff;
+    color: var(--ink);
+  }
+  input[type=text]:focus, input[type=password]:focus, select:focus {
+    outline: none; border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(31,92,153,.12);
+  }
+  .row { display: flex; gap: 10px; align-items: stretch; }
+  .row input { flex: 1; }
+  .checkbox { display: flex; align-items: flex-start; gap: 9px; margin-top: 18px; }
+  .checkbox input { margin-top: 3px; width: 17px; height: 17px; }
+  .checkbox label { margin: 0; }
+
+  /* Drop zone */
+  #drop {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 30px 20px;
+    text-align: center; cursor: pointer; transition: .15s;
+    background: #fbfcfd;
+  }
+  #drop:hover, #drop.over { border-color: var(--brand); background: #eef4fb; }
+  #drop .big { font-size: 17px; font-weight: 600; }
+  #drop .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  #drop.has-file { border-style: solid; border-color: var(--ok); background: var(--okbg); }
+  .filename { font-weight: 600; }
+
+  /* Buttons */
+  button {
+    font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; padding: 10px 18px;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--brand-dark); }
+  .btn-ghost { background: #fff; border-color: var(--line); color: var(--ink); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+  .btn-big { width: 100%; padding: 14px; font-size: 16px; margin-top: 22px; }
+
+  details { margin-top: 18px; }
+  summary {
+    cursor: pointer; font-weight: 600; font-size: 14px; color: var(--brand);
+    user-select: none;
+  }
+
+  /* Progress */
+  .bar { height: 10px; background: #eef1f4; border-radius: 6px; overflow: hidden; }
+  .bar > div {
+    height: 100%; background: var(--brand); width: 0%;
+    transition: width .4s ease;
+  }
+  .progress-meta {
+    display: flex; justify-content: space-between; margin: 10px 0 2px;
+    font-size: 14px;
+  }
+  .progress-meta .phase { font-weight: 600; }
+  .progress-meta .elapsed { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .console {
+    margin-top: 10px; background: #11202f; color: #cfe3f5;
+    border-radius: 8px; padding: 12px 14px; font-size: 12.5px;
+    font-family: "SF Mono", Consolas, "Liberation Mono", monospace;
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 220px; overflow-y: auto;
+  }
+
+  /* Live step checklist */
+  .steps { list-style: none; margin: 18px 0 4px; padding: 0; }
+  .steps li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; font-size: 14.5px; color: var(--muted);
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps .ico {
+    flex: none; width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    border: 2px solid var(--line); background: #fff; color: var(--muted);
+  }
+  .steps li.done   { color: var(--ink); }
+  .steps li.done .ico {
+    background: var(--ok); border-color: var(--ok); color: #fff;
+  }
+  .steps li.active { color: var(--ink); font-weight: 600; }
+  .steps li.active .ico {
+    border-color: var(--brand);
+    border-top-color: transparent; color: transparent;
+    animation: spin .8s linear infinite;
+  }
+  .note {
+    background: var(--warnbg); border: 1px solid #f0e3bd; color: var(--warn);
+    border-radius: 8px; padding: 12px 14px; font-size: 14px; margin-top: 16px;
+  }
+  .note b { color: #6b5400; }
+
+  /* Results */
+  .badges { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+  .badge {
+    border-radius: 8px; padding: 8px 12px; font-size: 14px; font-weight: 600;
+    border: 1px solid;
+  }
+  .badge.pass { background: var(--okbg); color: var(--ok); border-color: #bce3c6; }
+  .badge.fail { background: var(--badbg); color: var(--bad); border-color: #f2c4bd; }
+  .badge.unk  { background: #eef1f4; color: var(--muted); border-color: var(--line); }
+  .downloads { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .dl {
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+    text-decoration: none; color: var(--ink); background: #fff;
+  }
+  .dl:hover { border-color: var(--brand); background: #f7fafd; }
+  .dl .lbl { font-weight: 600; }
+  .dl .go { color: var(--brand); font-weight: 600; font-size: 14px; }
+  .dl.primary { background: var(--brand); border-color: var(--brand); }
+  .dl.primary .lbl, .dl.primary .go { color: #fff; }
+  .dl.primary:hover { background: var(--brand-dark); }
+
+  .pill {
+    display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px;
+    font-weight: 600;
+  }
+  .pill.green { background: var(--okbg); color: var(--ok); }
+  .pill.red   { background: var(--badbg); color: var(--bad); }
+  .errbox {
+    background: var(--badbg); border: 1px solid #f2c4bd; color: var(--bad);
+    border-radius: 8px; padding: 12px 14px; font-size: 14px;
+  }
+  .hidden { display: none; }
+  .vlm-status { font-size: 13px; margin-top: 6px; }
+  /* ====== Review screen ====== */
+  .review-tabs { display:flex; gap:8px; margin:6px 0 16px; flex-wrap:wrap; }
+  .review-tabs button {
+    background:#fff; border:1px solid var(--line); color:var(--ink);
+    padding:7px 14px; font-size:14px; border-radius:8px; cursor:pointer;
+    font-weight:600;
+  }
+  .review-tabs button:hover { border-color:var(--brand); color:var(--brand); }
+  .review-tabs button.active {
+    background:var(--brand); border-color:var(--brand); color:#fff;
+  }
+  .review-tabs button .ct {
+    display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px;
+    background:rgba(0,0,0,.08); font-size:12px;
+  }
+  .review-tabs button.active .ct { background:rgba(255,255,255,.22); }
+
+  .tiles {
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:16px; margin-top:8px;
+  }
+  .tile {
+    border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    background:#fff; display:flex; flex-direction:column; transition:.15s;
+  }
+  .tile.edited {
+    border-color:#e0a300; box-shadow:0 0 0 2px rgba(240,180,0,.18);
+  }
+  .tile .thumb {
+    aspect-ratio: 1/1; background:#f4f6f9; display:flex; align-items:center;
+    justify-content:center; position:relative;
+  }
+  .tile .thumb img { max-width:100%; max-height:100%; object-fit:contain; }
+  .tile .src-pill {
+    position:absolute; top:8px; right:8px;
+    font-size:11px; padding:2px 8px; border-radius:999px; font-weight:700;
+    background:rgba(255,255,255,.92); border:1px solid var(--line);
+  }
+  .tile.src-vlm .src-pill { background:var(--okbg); color:var(--ok); border-color:#bce3c6; }
+  .tile.src-override .src-pill { background:#e6efff; color:#1f5c99; border-color:#bdd4f0; }
+  .tile.src-decorative .src-pill { background:#eef1f4; color:var(--muted); border-color:var(--line); }
+  .tile.src-manual .src-pill { background:var(--badbg); color:var(--bad); border-color:#f2c4bd; }
+  .tile.edited .src-pill { background:var(--warnbg); color:var(--warn); border-color:#f0e3bd; }
+
+  .tile .body {
+    padding:10px 12px; flex:1; display:flex; flex-direction:column; gap:8px;
+  }
+  .tile .alt { font-size:13px; line-height:1.45; color:var(--ink); flex:1; word-break:break-word; }
+  .tile .alt.placeholder { color:var(--muted); font-style:italic; }
+  .tile .pages { font-size:11px; color:var(--muted); }
+  .tile .row-btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .tile button {
+    padding:5px 10px; font-size:12px; border-radius:6px;
+    background:#fff; border:1px solid var(--line); color:var(--ink);
+    cursor:pointer; font-weight:600; font-family:inherit;
+  }
+  .tile button:hover { border-color:var(--brand); color:var(--brand); }
+  .tile button.danger:hover { border-color:var(--bad); color:var(--bad); }
+  .tile button.primary {
+    background:var(--brand); color:#fff; border-color:var(--brand);
+  }
+  .tile button.primary:hover { background:var(--brand-dark); color:#fff; }
+  .tile textarea {
+    width:100%; min-height:64px; padding:6px 8px; font-size:13px;
+    border:1px solid var(--line); border-radius:6px; resize:vertical;
+    font-family:inherit; box-sizing:border-box;
+  }
+
+  .review-footer {
+    position:sticky; bottom:0; background:#fff;
+    border-top:1px solid var(--line); padding:14px 0 0;
+    margin-top:24px; display:flex; gap:10px; align-items:center;
+    flex-wrap:wrap;
+  }
+  .review-footer .count { flex:1; color:var(--muted); font-size:14px; }
+  .review-open-btn { margin-top: 14px; }
+
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
+  .spinner {
+    display: inline-block; width: 15px; height: 15px; vertical-align: -2px;
+    border: 2px solid #c9d6e3; border-top-color: var(--brand);
+    border-radius: 50%; animation: spin .8s linear infinite; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>PDF Accessibility Remediator</h1>
+      <p>Upload a PDF and get back a WCAG 2.2 / PDF/UA-1 compliant version with validation reports.</p>
+    </div>
+    <a class="help-link" href="/help" target="_blank" rel="noopener">📖 Help &amp; docs</a>
+  </header>
+
+  <!-- ===================== UPLOAD ===================== -->
+  <section class="card" id="card-upload">
+    <h2><span class="step">1.</span> Choose your PDF</h2>
+
+    <div id="drop">
+      <div class="big">Drop a PDF here, or click to browse</div>
+      <div class="sub">One file at a time. Up to <span id="maxmb">200</span> MB.</div>
+    </div>
+    <input type="file" id="file" accept="application/pdf,.pdf" class="hidden">
+
+    <h2 style="margin-top:26px"><span class="step">2.</span> Settings</h2>
+    <p class="hint" style="margin-top:-8px">The defaults are fine for most documents. Adjust only if you need to.</p>
+
+    <label for="image_strategy">Images in the document</label>
+    <select id="image_strategy">
+      <option value="vlm">Describe images automatically with AI (recommended)</option>
+      <option value="decorative">Mark all images as decorative</option>
+      <option value="prompt">Just list images for me to describe manually</option>
+    </select>
+    <p class="hint">AI descriptions let screen-reader users understand screenshots and diagrams.</p>
+
+    <div id="vlm-block">
+      <label for="vlm_base_url">Vision model server address</label>
+      <div class="row">
+        <input type="text" id="vlm_base_url" placeholder="http://host:1234/v1">
+        <button type="button" class="btn-ghost" id="test-vlm">Test</button>
+      </div>
+      <p class="hint">An OpenAI-compatible endpoint (e.g. LM Studio, vLLM, llama.cpp server). Ask your administrator if unsure.</p>
+      <div class="vlm-status" id="vlm-status"></div>
+
+      <label for="vlm_model">Vision model name</label>
+      <input type="text" id="vlm_model" placeholder="qwen/qwen3-vl-30b">
+
+      <label for="vlm_api_key">Vision model API key</label>
+      <input type="password" id="vlm_api_key" placeholder="Leave blank if not required"
+             autocomplete="off">
+      <p class="hint">Only needed if the model server requires authentication. Most local OpenAI-compatible servers (LM Studio, vLLM, llama.cpp) do not.</p>
+    </div>
+
+    <details>
+      <summary>More options</summary>
+      <label for="language">Document language</label>
+      <select id="language">
+        <option value="en">English</option>
+        <option value="el">Greek</option>
+        <option value="da">Danish</option>
+        <option value="de">German</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+        <option value="it">Italian</option>
+        <option value="nl">Dutch</option>
+      </select>
+      <p class="hint">Used for the document's language tag and AI descriptions.</p>
+
+      <div class="checkbox">
+        <input type="checkbox" id="apply_contrast" checked>
+        <div>
+          <label for="apply_contrast">Improve colour contrast</label>
+          <p class="hint">Darkens low-contrast text and colours so they meet WCAG AA.</p>
+        </div>
+      </div>
+    </details>
+
+    <button class="btn-primary btn-big" id="start" disabled>Start remediation</button>
+    <p class="hint" id="queue-note" style="text-align:center"></p>
+  </section>
+
+  <!-- ===================== PROGRESS ===================== -->
+  <section class="card hidden" id="card-progress">
+    <h2><span class="spinner"></span>Working on <span id="prog-name" class="filename"></span></h2>
+    <div class="progress-meta">
+      <span class="phase" id="prog-phase">Starting…</span>
+      <span class="elapsed" id="prog-elapsed">0:00</span>
+    </div>
+    <div class="bar"><div id="prog-bar"></div></div>
+
+    <ul class="steps" id="prog-steps"></ul>
+
+    <details>
+      <summary>Show detailed log</summary>
+      <div class="console" id="prog-log"></div>
+    </details>
+    <p class="hint">A large document typically takes 5–10 minutes. You can leave this page open — it updates automatically.</p>
+  </section>
+
+  <!-- ===================== RESULTS ===================== -->
+  <section class="card hidden" id="card-results">
+    <h2>✓ Remediation complete</h2>
+    <p class="hint" id="res-parent-note" style="display:none"></p>
+    <div class="badges" id="res-badges"></div>
+    <p class="hint" id="res-badges-hint"></p>
+
+    <button class="btn-primary btn-big review-open-btn hidden" id="review-open">
+      Review image descriptions
+    </button>
+
+    <div class="downloads" id="res-downloads"></div>
+
+    <div class="note">
+      <b>Official PAC report:</b> the veraPDF reports above confirm technical
+      compliance. To produce the formal <b>PAC 2024</b> report, open the
+      remediated PDF in PAC 2024 (free from <b>pac.pdf-accessibility.org</b>)
+      on a Windows PC.
+    </div>
+
+    <button class="btn-ghost btn-big" id="again">Remediate another document</button>
+  </section>
+
+  <!-- ===================== REVIEW (alt-text) ===================== -->
+  <section class="card hidden" id="card-review">
+    <h2>Review image descriptions</h2>
+    <p class="hint" id="review-summary"></p>
+    <div class="review-tabs" id="review-tabs"></div>
+    <div class="tiles" id="review-tiles"></div>
+    <div class="review-footer">
+      <span class="count" id="review-count">0 edits pending</span>
+      <button class="btn-ghost" id="review-cancel">Back to results</button>
+      <button class="btn-primary" id="review-apply" disabled>
+        Apply changes &amp; re-run
+      </button>
+    </div>
+  </section>
+
+  <!-- ===================== FAILED ===================== -->
+  <section class="card hidden" id="card-failed">
+    <h2 style="color:var(--bad)">✗ Remediation failed</h2>
+    <div class="errbox" id="fail-msg"></div>
+    <div class="console" id="fail-log" style="margin-top:14px"></div>
+    <button class="btn-ghost btn-big" id="again2">Try again</button>
+  </section>
+
+  <footer>
+    WCAG 2.2 · PDF/UA-1 (ISO 14289-1) · WTPDF 1.0 — validated with veraPDF<br>
+    <a href="/help" target="_blank" rel="noopener" style="color:var(--brand)">Help &amp; documentation</a>
+    <span aria-hidden="true" style="margin:0 8px;color:var(--muted)">·</span>
+    <a href="https://buymeacoffee.com/alexadamopoulos" target="_blank"
+       rel="noopener" style="color:var(--brand)">☕ Buy us a coffee</a>
+    <span aria-hidden="true" style="margin:0 8px;color:var(--muted)">·</span>
+    Maintained by <a href="mailto:info@assert.gr" style="color:var(--brand)">ASSERT I.K.E.</a>
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let selectedFile = null;
+let pollTimer = null;
+let defaults = null;
+
+// ---- Download artefact labels ----
+const DL_META = {
+  remediated_pdf:    { label: "Remediated PDF",                primary: true  },
+  verapdf_ua1_html:  { label: "veraPDF PDF/UA-1 report",       primary: false },
+  verapdf_wt1a_html: { label: "veraPDF WTPDF report",          primary: false },
+  summary_json:      { label: "Remediation summary (JSON)",    primary: false },
+};
+const DL_ORDER = ["remediated_pdf", "verapdf_ua1_html", "verapdf_wt1a_html", "summary_json"];
+
+// ---- Pipeline steps shown in the live checklist ----
+const STEPS = [
+  "Read document metadata",
+  "Tag document structure",
+  "Determine reading order",
+  "Detect tables & headers",
+  "Describe images (AI alt text)",
+  "Label form fields",
+  "Improve colour contrast",
+  "Tag language of parts",
+  "Apply WTPDF accessibility profile",
+  "Save remediated PDF",
+  "Validate with veraPDF",
+];
+
+// ---- Init ----
+async function init() {
+  try {
+    defaults = await (await fetch("/api/defaults")).json();
+    const c = defaults.config || {};
+    $("vlm_base_url").value = c.vlm_base_url || "";
+    $("vlm_model").value = c.vlm_model || "";
+    $("image_strategy").value = c.image_strategy || "vlm";
+    $("language").value = c.language || "en";
+    $("apply_contrast").checked = c.apply_contrast !== false;
+    $("maxmb").textContent = defaults.max_upload_mb || 200;
+    if (defaults.queue_depth > 0) {
+      $("queue-note").textContent =
+        defaults.queue_depth + " document(s) currently in the queue.";
+    }
+    if (!defaults.verapdf_available) {
+      $("queue-note").textContent +=
+        "  (Note: veraPDF is unavailable — validation reports will be skipped.)";
+    }
+  } catch (e) { /* keep page usable even if defaults fail */ }
+  syncImageStrategy();
+
+  // Resume an in-progress job after a page refresh.
+  const saved = sessionStorage.getItem("job_id");
+  if (saved) { showProgress(""); poll(saved); }
+}
+
+// ---- Image strategy toggles VLM fields ----
+function syncImageStrategy() {
+  const usesVlm = $("image_strategy").value === "vlm";
+  $("vlm-block").style.display = usesVlm ? "" : "none";
+}
+$("image_strategy").addEventListener("change", syncImageStrategy);
+
+// ---- File selection ----
+const drop = $("drop"), fileInput = $("file");
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => {
+  e.preventDefault(); drop.classList.remove("over");
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) setFile(fileInput.files[0]);
+});
+function setFile(f) {
+  if (!f.name.toLowerCase().endsWith(".pdf")) {
+    alert("Please choose a PDF file."); return;
+  }
+  selectedFile = f;
+  drop.classList.add("has-file");
+  drop.innerHTML =
+    '<div class="big">📄 <span class="filename">' + escapeHtml(f.name) + '</span></div>' +
+    '<div class="sub">' + (f.size / 1048576).toFixed(1) + ' MB — click to choose a different file</div>';
+  $("start").disabled = false;
+}
+
+// ---- Test VLM connection ----
+$("test-vlm").addEventListener("click", async () => {
+  const s = $("vlm-status");
+  s.textContent = "Testing…"; s.style.color = "var(--muted)";
+  try {
+    const r = await fetch("/api/test-vlm", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        base_url: $("vlm_base_url").value,
+        api_key: $("vlm_api_key").value,
+      }),
+    });
+    const d = await r.json();
+    s.textContent = (d.ok ? "✓ " : "✗ ") + d.message;
+    s.style.color = d.ok ? "var(--ok)" : "var(--bad)";
+  } catch (e) {
+    s.textContent = "✗ Test failed."; s.style.color = "var(--bad)";
+  }
+});
+
+// ---- Start ----
+$("start").addEventListener("click", async () => {
+  if (!selectedFile) return;
+  $("start").disabled = true;
+  $("start").textContent = "Uploading…";
+  const fd = new FormData();
+  fd.append("file", selectedFile);
+  fd.append("vlm_base_url", $("vlm_base_url").value);
+  fd.append("vlm_model", $("vlm_model").value);
+  fd.append("vlm_api_key", $("vlm_api_key").value);
+  fd.append("image_strategy", $("image_strategy").value);
+  fd.append("language", $("language").value);
+  fd.append("apply_contrast", $("apply_contrast").checked);
+  try {
+    const r = await fetch("/api/jobs", { method: "POST", body: fd });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || ("Upload failed (" + r.status + ")"));
+    }
+    const { job_id } = await r.json();
+    sessionStorage.setItem("job_id", job_id);
+    showProgress(selectedFile.name);
+    poll(job_id);
+  } catch (e) {
+    alert(e.message);
+    $("start").disabled = false;
+    $("start").textContent = "Start remediation";
+  }
+});
+
+// ---- View switching ----
+function show(id) {
+  ["card-upload", "card-progress", "card-results", "card-failed", "card-review"]
+    .forEach(c => $(c).classList.toggle("hidden", c !== id));
+}
+function showProgress(name) {
+  $("prog-name").textContent = name || "your document";
+  show("card-progress");
+}
+
+// ---- Polling ----
+function poll(jobId) {
+  clearTimeout(pollTimer);
+  fetch("/api/jobs/" + jobId)
+    .then(r => { if (!r.ok) throw new Error("expired"); return r.json(); })
+    .then(j => {
+      updateProgress(j);
+      if (j.status === "done") { sessionStorage.removeItem("job_id"); showResults(jobId, j); }
+      else if (j.status === "failed") { sessionStorage.removeItem("job_id"); showFailed(j); }
+      else { pollTimer = setTimeout(() => poll(jobId), 2500); }
+    })
+    .catch(() => {
+      sessionStorage.removeItem("job_id");
+      $("prog-phase").textContent =
+        "Lost contact with this job — it may have expired. Please start again.";
+    });
+}
+
+function updateProgress(j) {
+  $("prog-name").textContent = j.display_name || "your document";
+  $("prog-phase").textContent = j.phase || j.status;
+  $("prog-elapsed").textContent = fmtTime(j.elapsed_seconds || 0);
+  $("prog-bar").style.width = estimatePct(j) + "%";
+  renderSteps(j);
+  const log = $("prog-log");
+  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+  log.textContent = j.log_tail || "Starting…";
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+
+// Which pipeline step is running, from the '[n/9]' banners the pipeline prints.
+function currentStep(j) {
+  if (j.status === "done") return STEPS.length;
+  const p = j.phase || "";
+  const m = p.match(/^\[(\d+)\/9\]/);
+  if (m) return parseInt(m[1]) - 1;            // steps 0–8
+  if (p.indexOf("Validating") >= 0) return 10; // veraPDF
+  if (p.indexOf("Completed") >= 0) return STEPS.length;
+  if (p.indexOf("Saving") >= 0) return 9;
+  return -1;                                   // queued / starting
+}
+
+function renderSteps(j) {
+  const ul = $("prog-steps");
+  if (ul.childElementCount !== STEPS.length) {
+    ul.innerHTML = STEPS.map(s =>
+      '<li><span class="ico"></span><span>' + s + '</span></li>').join("");
+  }
+  const cur = currentStep(j);
+  [...ul.children].forEach((li, i) => {
+    li.classList.remove("done", "active");
+    const ico = li.querySelector(".ico");
+    if (i < cur)        { li.classList.add("done");   ico.textContent = "✓"; }
+    else if (i === cur) { li.classList.add("active"); ico.textContent = ""; }
+    else                { ico.textContent = String(i + 1); }
+  });
+}
+
+// Coarse progress estimate from the pipeline's "[n/9]" banners.
+function estimatePct(j) {
+  const p = j.phase || "";
+  let m = p.match(/^\[(\d+)\/9\]/);
+  if (m) return Math.round(parseInt(m[1]) / 12 * 100);
+  if (p.startsWith("Saving")) return 84;
+  if (p.indexOf("PDF/UA-1") >= 0) return 90;
+  if (p.indexOf("WTPDF") >= 0) return 96;
+  if (j.status === "done") return 100;
+  if (j.status === "queued") return 2;
+  return 6;
+}
+
+function showResults(jobId, j) {
+  show("card-results");
+
+  // Validation badges
+  const badges = $("res-badges");
+  badges.innerHTML = "";
+  const v = j.validation || {};
+  if (v.available === false) {
+    badges.innerHTML = '<span class="badge unk">veraPDF unavailable — see PAC below</span>';
+    $("res-badges-hint").textContent = "";
+  } else {
+    let anyFail = false;
+    ["ua1", "wt1a"].forEach(f => {
+      const r = v[f]; if (!r) return;
+      let cls = "unk", txt = r.label + ": not determined";
+      if (r.compliant === true) { cls = "pass"; txt = "✓ " + r.label + ": compliant"; }
+      else if (r.compliant === false) {
+        cls = "fail"; anyFail = true;
+        txt = "✗ " + r.label + ": " + (r.failed_rules || "some") + " issue(s)";
+      }
+      const el = document.createElement("span");
+      el.className = "badge " + cls; el.textContent = txt;
+      badges.appendChild(el);
+    });
+    $("res-badges-hint").textContent = anyFail
+      ? "Some checks did not pass — open the report(s) below for details."
+      : "veraPDF confirms the remediated PDF is technically compliant.";
+  }
+
+  // Download links
+  const dls = $("res-downloads");
+  dls.innerHTML = "";
+  DL_ORDER.forEach(kind => {
+    if (!(j.files || []).includes(kind)) return;
+    const meta = DL_META[kind] || { label: kind, primary: false };
+    const a = document.createElement("a");
+    a.className = "dl" + (meta.primary ? " primary" : "");
+    a.href = "/api/jobs/" + jobId + "/download/" + kind;
+    if (kind.endsWith("_html")) a.target = "_blank";
+    a.innerHTML = '<span class="lbl">' + meta.label + '</span>' +
+                  '<span class="go">' +
+                  (kind.endsWith("_html") ? "Open ▸" : "Download ▾") + '</span>';
+    dls.appendChild(a);
+  });
+
+  // Refinement banner (this is a re-run of an earlier job)
+  const note = $("res-parent-note");
+  if (j.parent_id) {
+    note.style.display = "";
+    note.innerHTML = "Refined from <code>" + escapeHtml(j.parent_id) +
+      "</code> with " + (j.alt_overrides_count || 0) + " alt-text override(s).";
+  } else {
+    note.style.display = "none"; note.textContent = "";
+  }
+
+  // Image-review entry point — only when the pipeline emitted a manifest.
+  const reviewBtn = $("review-open");
+  if ((j.files || []).includes("images_manifest")) {
+    reviewBtn.dataset.jobId = jobId;
+    reviewBtn.classList.remove("hidden");
+  } else {
+    reviewBtn.classList.add("hidden");
+  }
+}
+
+// ====================================================================
+// Alt-text review (human-in-the-loop refinement)
+// ====================================================================
+let reviewState = {
+  jobId: null, manifest: null, edits: {}, filter: "all",
+};
+
+$("review-open").addEventListener("click", () => {
+  const jobId = $("review-open").dataset.jobId;
+  if (jobId) enterReview(jobId);
+});
+
+async function enterReview(jobId) {
+  show("card-review");
+  $("review-tiles").innerHTML = '<p class="hint">Loading images…</p>';
+  $("review-tabs").innerHTML = "";
+  $("review-summary").textContent = "";
+  $("review-count").textContent = "0 edits pending";
+  $("review-apply").disabled = true;
+  try {
+    const r = await fetch("/api/jobs/" + jobId + "/images");
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || "Could not load images.");
+    }
+    const data = await r.json();
+    const initialFilter = (data.counts && data.counts.manual_required > 0)
+      ? "needs" : "all";
+    reviewState = { jobId, manifest: data, edits: {}, filter: initialFilter };
+    renderReview();
+  } catch (e) {
+    $("review-tiles").innerHTML =
+      '<div class="errbox">' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderReview() {
+  const d = reviewState.manifest; if (!d) return;
+  const c = d.counts || {};
+  const filters = [
+    { id: "all",        label: "All",          ct: c.total || 0 },
+    { id: "needs",      label: "Needs review", ct: (c.manual_required || 0) + (c.pending_vlm || 0) },
+    { id: "described",  label: "Described",    ct: (c.vlm || 0) + (c.override || 0) },
+    { id: "decorative", label: "Decorative",   ct: c.decorative || 0 },
+  ];
+  $("review-tabs").innerHTML = filters.map(f =>
+    '<button data-f="' + f.id + '"' +
+    (reviewState.filter === f.id ? ' class="active"' : '') +
+    '>' + escapeHtml(f.label) + '<span class="ct">' + f.ct + '</span></button>'
+  ).join("");
+  [...$("review-tabs").querySelectorAll("button")].forEach(b =>
+    b.addEventListener("click", () => {
+      reviewState.filter = b.dataset.f; renderReview();
+    })
+  );
+
+  $("review-summary").textContent =
+    (c.total || 0) + " image(s) processed. " +
+    "Click any tile to change its description or mark it decorative; " +
+    "Apply re-runs the pipeline with your edits.";
+
+  const filterFn = (img) => {
+    const s = img.source || "";
+    switch (reviewState.filter) {
+      case "needs": return s === "manual_required" || s === "pending_vlm";
+      case "described": return s === "vlm" || s === "override";
+      case "decorative": return s.indexOf("decorative") >= 0;
+      default: return true;
+    }
+  };
+  const list = (d.images || []).filter(filterFn);
+  if (!list.length) {
+    $("review-tiles").innerHTML = '<p class="hint">No images in this category.</p>';
+  } else {
+    $("review-tiles").innerHTML = list.map(renderTile).join("");
+    list.forEach(img => attachTileHandlers(img.hash));
+  }
+
+  const n = Object.keys(reviewState.edits).length;
+  $("review-count").textContent = n + " edit" + (n === 1 ? "" : "s") + " pending";
+  $("review-apply").disabled = n === 0;
+  $("review-apply").textContent = "Apply changes & re-run";
+}
+
+function effectiveAlt(img) {
+  const e = reviewState.edits[img.hash];
+  if (e === "DECORATIVE") return null;
+  if (e !== undefined) return e;
+  return img.alt;
+}
+function effectiveDecorative(img) {
+  const e = reviewState.edits[img.hash];
+  if (e === "DECORATIVE") return true;
+  if (e !== undefined) return false;
+  return (img.source || "").indexOf("decorative") >= 0;
+}
+function tileClass(img) {
+  if (reviewState.edits[img.hash] !== undefined) return "edited";
+  const s = img.source || "";
+  if (s === "vlm") return "src-vlm";
+  if (s === "override") return "src-override";
+  if (s.indexOf("decorative") >= 0) return "src-decorative";
+  return "src-manual";
+}
+function tileLabel(img) {
+  if (reviewState.edits[img.hash] !== undefined) {
+    return reviewState.edits[img.hash] === "DECORATIVE" ? "Decorative ✎" : "Edited ✎";
+  }
+  const s = img.source || "";
+  if (s === "vlm") return "AI";
+  if (s === "override") return "Edited";
+  if (s.indexOf("decorative") >= 0) return "Decorative";
+  if (s === "manual_required") return "Needs description";
+  return "?";
+}
+
+function renderTile(img) {
+  const alt = effectiveAlt(img);
+  const dec = effectiveDecorative(img);
+  const pages = [...new Set((img.occurrences || []).map(o => o.page))];
+  const pagesLabel = (pages.length ? "Page" + (pages.length > 1 ? "s " : " ") +
+    pages.slice(0, 6).join(", ") + (pages.length > 6 ? "…" : "") : "");
+  const altHtml = dec
+    ? '<div class="alt placeholder">(marked decorative)</div>'
+    : (alt
+        ? '<div class="alt">' + escapeHtml(alt) + '</div>'
+        : '<div class="alt placeholder">(no description yet)</div>');
+  const buttons = [];
+  if (dec) buttons.push('<button data-act="edit">Add description</button>');
+  else     buttons.push('<button data-act="edit">Edit description</button>');
+  if (!dec) buttons.push('<button data-act="decorative">Mark decorative</button>');
+  if (reviewState.edits[img.hash] !== undefined)
+    buttons.push('<button data-act="reset" class="danger">Reset</button>');
+
+  return (
+    '<div class="tile ' + tileClass(img) + '" data-h="' + img.hash + '">' +
+      '<div class="thumb">' +
+        '<img loading="lazy" alt="" src="' + img.thumb_url + '">' +
+        '<span class="src-pill">' + escapeHtml(tileLabel(img)) + '</span>' +
+      '</div>' +
+      '<div class="body">' +
+        altHtml +
+        (pagesLabel ? '<div class="pages">' + escapeHtml(pagesLabel) + '</div>' : '') +
+        '<div class="row-btns" data-actions="' + img.hash + '">' +
+          buttons.join("") +
+        '</div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function attachTileHandlers(hash) {
+  const row = document.querySelector('[data-actions="' + hash + '"]');
+  if (!row) return;
+  row.querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => onTileAction(hash, b.dataset.act))
+  );
+}
+function onTileAction(hash, act) {
+  if (act === "decorative") { reviewState.edits[hash] = "DECORATIVE"; renderReview(); }
+  else if (act === "reset") { delete reviewState.edits[hash]; renderReview(); }
+  else if (act === "edit")  { openTileEditor(hash); }
+}
+
+function openTileEditor(hash) {
+  const tile = document.querySelector('[data-h="' + hash + '"]');
+  if (!tile) return;
+  const body = tile.querySelector(".body");
+  const img = (reviewState.manifest.images || []).find(i => i.hash === hash);
+  const current = effectiveAlt(img) || "";
+  const original = img.alt || "";
+  body.innerHTML =
+    '<textarea>' + escapeHtml(current) + '</textarea>' +
+    '<p class="hint" style="margin:0">Aim for ≤125 characters. Describe content and function, not visual style.</p>' +
+    '<div class="row-btns">' +
+      '<button data-act="save" class="primary">Save</button>' +
+      '<button data-act="cancel">Cancel</button>' +
+      (original && original !== current
+        ? '<button data-act="revert">Revert to AI</button>' : '') +
+    '</div>';
+  const ta = body.querySelector("textarea");
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  body.querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => {
+      const act = b.dataset.act;
+      if (act === "save") {
+        const v = ta.value.trim();
+        if (v && v !== original) reviewState.edits[hash] = v;
+        else delete reviewState.edits[hash];
+        renderReview();
+      } else if (act === "cancel") { renderReview(); }
+      else if (act === "revert")   { ta.value = original; }
+    })
+  );
+}
+
+$("review-cancel").addEventListener("click", () => {
+  if (Object.keys(reviewState.edits).length &&
+      !confirm("You have unsaved edits. Discard them?")) return;
+  reviewState = { jobId: null, manifest: null, edits: {}, filter: "all" };
+  show("card-results");
+});
+
+$("review-apply").addEventListener("click", async () => {
+  const overrides = { ...reviewState.edits };
+  if (!Object.keys(overrides).length) return;
+  $("review-apply").disabled = true;
+  $("review-apply").textContent = "Submitting…";
+  try {
+    const r = await fetch("/api/jobs/" + reviewState.jobId + "/refine", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ overrides }),
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || ("Refine failed (" + r.status + ")"));
+    }
+    const { job_id } = await r.json();
+    sessionStorage.setItem("job_id", job_id);
+    reviewState = { jobId: null, manifest: null, edits: {}, filter: "all" };
+    showProgress("Refining with your edits…");
+    poll(job_id);
+  } catch (e) {
+    alert(e.message);
+    $("review-apply").disabled = false;
+    $("review-apply").textContent = "Apply changes & re-run";
+  }
+});
+
+function showFailed(j) {
+  show("card-failed");
+  $("fail-msg").textContent =
+    (j.error || "An unexpected error occurred.") +
+    "  Please check the settings and try again, or contact your administrator.";
+  $("fail-log").textContent = j.log_tail || "";
+}
+
+// ---- Reset ----
+function reset() {
+  selectedFile = null;
+  $("file").value = "";
+  drop.classList.remove("has-file");
+  drop.innerHTML =
+    '<div class="big">Drop a PDF here, or click to browse</div>' +
+    '<div class="sub">One file at a time. Up to ' +
+    (defaults && defaults.max_upload_mb || 200) + ' MB.</div>';
+  $("start").disabled = true;
+  $("start").textContent = "Start remediation";
+  show("card-upload");
+}
+$("again").addEventListener("click", reset);
+$("again2").addEventListener("click", reset);
+
+// ---- Helpers ----
+function fmtTime(s) {
+  s = Math.round(s);
+  const m = Math.floor(s / 60);
+  return m + ":" + String(s % 60).padStart(2, "0");
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Web front-end dependencies (in addition to the project's root requirements.txt).
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+markdown==3.7

@@ -1,0 +1,33 @@
+# PDF Accessibility Remediator — deployment for a shared server / VM.
+#
+#   cd webapp
+#   docker compose up -d --build
+#   # open http://<server-host>:8000
+#
+services:
+  pdf-a11y:
+    build:
+      context: ..                 # project root — the image needs pdf_a11y/
+      dockerfile: webapp/Dockerfile
+    image: pdf-a11y-remediator:1.0
+    container_name: pdf-a11y
+    ports:
+      - "8000:8000"               # change the left side to publish another port
+    environment:
+      # Default vision-model (VLM) server pre-filled in the UI. Each user can
+      # still override it per upload. Point this at a VLM the server can reach.
+      # Override the default by exporting VLM_BASE_URL or putting it in
+      # webapp/.env (gitignored) — e.g. VLM_BASE_URL=http://your-host:1234/v1
+      VLM_BASE_URL: "${VLM_BASE_URL:-http://localhost:1234/v1}"
+      VLM_MODEL: "${VLM_MODEL:-qwen/qwen3-vl-30b}"
+      # One document at a time keeps the box responsive; raise with care.
+      MAX_CONCURRENT_JOBS: "1"
+      # Finished jobs (and their files) are purged after this many hours.
+      JOB_RETENTION_HOURS: "24"
+      MAX_UPLOAD_MB: "200"
+    volumes:
+      - pdf-a11y-jobs:/data/jobs   # uploads + results survive a restart
+    restart: unless-stopped
+
+volumes:
+  pdf-a11y-jobs:

@@ -1,0 +1,273 @@
+# ============================================================================
+# pdf_a11y — Canonical Remediation Config
+# ============================================================================
+# Every tunable the pipeline reads is exposed here. Active values are uncommented;
+# alternative providers/engines are kept as commented stubs so swapping is a
+# search-and-replace, not a hunt through the codebase.
+#
+# Defaults selected for the target customs workflow document, with:
+#   - tagging.engine          = opendataloader   (free, local, Java-backed)
+#   - images.strategy         = vlm
+#   - images.vlm.provider     = openai_compatible (any OpenAI-compatible
+#                               inference server: LM Studio, vLLM,
+#                               llama.cpp server, Ollama in OpenAI mode, …)
+#   - contrast.apply_remapping = true            (palette below targets the doc)
+# ============================================================================
+
+
+# --------------------------------------------------------------------
+# Document metadata — WCAG 3.1.1, 2.4.2, PDF/UA marker
+# --------------------------------------------------------------------
+document:
+  # WCAG 3.1.1 Language of Page (Level A). ISO 639-1, e.g. en | el | da | de | fr.
+  primary_language: "en"
+
+  # WCAG 2.4.2 Page Titled. null = fall back to existing /Title, then filename.
+  title: null
+
+  # Optional Dublin Core metadata
+  author: null
+  subject: "Customs Workflow Management — User Guide r6.1.3.1"
+  keywords: ["customs", "workflow", "user guide"]
+
+  # PDF/UA-1 conformance marker. Set true once the StructTreeRoot is real
+  # (i.e. once tagging.engine != "skip"). With opendataloader + WTPDFFixer
+  # the document does pass veraPDF PDF/UA-1, so claim it.
+  declare_pdf_ua: true
+
+  # WCAG 2.4.2 supplement — show document title in the viewer chrome.
+  display_doc_title: true
+
+
+# --------------------------------------------------------------------
+# Structure tagging — WCAG 1.3.1 Info and Relationships
+# --------------------------------------------------------------------
+tagging:
+  # Engines:
+  #   "opendataloader" → Apache 2.0, Java-backed local tagger (recommended)
+  #   "adobe"          → Adobe PDF Services Autotag (paid, highest quality)
+  #   "pdfix"          → PDFix SDK (commercial)
+  #   "heuristic"      → Built-in font-size heuristic (free, flat output)
+  #   "skip"           → Leave existing structure alone
+  engine: "opendataloader"
+
+  # Post-tagging sweep: wrap any page content the tagger left outside the
+  # structure tree (and outside an existing Artifact) in /Artifact BMC.
+  # Required for veraPDF PDF/UA 7.1-3 and WTPDF 8.2.2-1 on real-world
+  # documents — opendataloader routinely misses page-decoration paths,
+  # complex charts, and stray headers. Safe to leave on.
+  wrap_untagged_as_artifact: true
+
+  # Demote Form XObjects that carry MCIDs and are referenced from more
+  # than one page (typically repeating header/footer templates) to
+  # /Artifact, and prune the matching struct-tree /MCR references.
+  # Required for veraPDF PDF/UA 7.20-2. Page numbers in repeating
+  # headers/footers SHOULD be artifacts per WCAG, so this also reflects
+  # the right semantics — they no longer get read by screen readers.
+  demote_shared_mcid_xobjects: true
+
+  # opendataloader-pdf (https://github.com/opendataloader-project/opendataloader-pdf)
+  # Requires Java 11+ on PATH (https://adoptium.net).
+  opendataloader:
+    # All pass-throughs to opendataloader_pdf.convert(). Leave commented to
+    # use library defaults.
+    # language: "en"
+    # ocr: false
+    # use_hybrid: false                       # off | docling-fast | hancom-ai
+    # hybrid_url: "http://localhost:5002"     # local hybrid backend if enabled
+    # threads: 1                              # >1 is experimental, parallel pages
+
+  adobe:
+    # Used only when engine: "adobe".
+    # Credentials are read from credentials_file first (a text file with
+    # 'client ID : ...' and 'client secret : ...' lines); if absent, the
+    # environment variables below are used as a fallback.
+    credentials_file: "config/adobe_api.txt"
+    client_id_env: "ADOBE_CLIENT_ID"
+    client_secret_env: "ADOBE_CLIENT_SECRET"
+    generate_report: true
+
+  heuristic:
+    # Used only when engine: "heuristic". Font-size thresholds (in points)
+    # for heading classification.
+    heading_thresholds:
+      h1: 20.0
+      h2: 16.0
+      h3: 13.0
+      h4: 11.5
+    body_min_size: 8.5
+
+
+# --------------------------------------------------------------------
+# Image alt-text — WCAG 1.1.1 Non-text Content
+# --------------------------------------------------------------------
+images:
+  # Strategies:
+  #   "vlm"        → generate alt text via a Vision Language Model
+  #   "prompt"     → emit a CSV of images needing manual alt text
+  #   "decorative" → mark every untagged image as artifact
+  strategy: "vlm"
+
+  # Heuristic pre-filter to skip obvious icons/dividers before calling the VLM.
+  decorative_heuristics:
+    max_decorative_width: 32       # pixels
+    max_decorative_height: 32
+    entropy_threshold: 1.5         # below this = treated as decorative
+
+  vlm:
+    # Providers: "openai_compatible" | "anthropic" | "openai" | "ollama"
+    provider: "openai_compatible"
+
+    # Active provider's settings -----------------------------------
+    # OpenAI-compatible inference server. Examples:
+    #   LM Studio:        http://localhost:1234/v1
+    #   vLLM:             http://host:8000/v1
+    #   llama.cpp server: http://host:8080/v1
+    #   Ollama (OpenAI):  http://host:11434/v1
+    base_url: "http://localhost:1234/v1"
+    model: "qwen/qwen3-vl-30b"
+    # API key resolution: an explicit `api_key` below wins; otherwise the
+    # env var named by `api_key_env` is read. Local servers usually ignore
+    # the key unless you've enabled auth; cloud providers need it.
+    # api_key: ""                       # set directly, or leave for api_key_env
+    api_key_env: "VLM_API_KEY"          # usually unset for local servers
+    concurrency: 8                        # parallel requests
+    timeout_seconds: 180                  # per-request timeout
+    temperature: 0.2                      # low → consistent factual alt text
+    max_response_tokens: 200              # margin above max_alt_length
+    verbose_progress: true                # log every 10 images processed
+
+    # Shared across providers --------------------------------------
+    max_alt_length: 125                   # WCAG screen-reader best practice
+    prefer_existing_caption: true
+    output_language: "en"
+
+    # Alternate provider stubs -------------------------------------
+    # Anthropic Claude
+    # provider: "anthropic"
+    # model: "claude-sonnet-4-5"
+    # api_key_env: "ANTHROPIC_API_KEY"
+    #
+    # OpenAI
+    # provider: "openai"
+    # model: "gpt-4o"
+    # api_key_env: "OPENAI_API_KEY"
+    #
+    # Ollama (local)
+    # provider: "ollama"
+    # model: "llava"
+    # ollama_url: "http://localhost:11434/api/generate"
+
+  # Lock in human-reviewed alt text by SHA-256 prefix from <stem>_images_review.csv.
+  # Special value "DECORATIVE" force-marks the image as an artifact.
+  alt_overrides: {}
+    # "a3f5b8c1": "Diagram showing the NCTS Phase 6 message flow"
+    # "9e2d1a4f": "DECORATIVE"
+
+
+# --------------------------------------------------------------------
+# Contrast — WCAG 1.4.3 / 1.4.11
+# --------------------------------------------------------------------
+contrast:
+  # false: report-only. true: apply color_mappings below.
+  apply_remapping: true
+
+  # WCAG AA thresholds (don't change without a documented reason)
+  min_ratio_normal_text: 4.5
+  min_ratio_large_text: 3.0
+  large_text_threshold_pt: 18.0
+  large_text_bold_threshold_pt: 14.0
+
+  # Hex → hex replacements applied to text and vector content (rg/RG/sc/SC/
+  # scn/SCN operators). Populate from the JSON report's 1.4.3 findings
+  # after a report-only run. Values below target the colors found in the
+  # target document.
+  color_mappings:
+    "#A6A6A6": "#595959"   # 7pt copyright/footer — 1,176 instances
+    "#428BCA": "#1F5C99"   # 9pt hyperlink blue   — 416 instances
+    "#A9A9A9": "#595959"   # 9pt secondary grey   — 207 instances
+    # Page-181 status-colour demo text ("the row appears in red/green/
+    # yellow"). Darkened to clear WCAG 1.4.3 (4.5:1 on white) while
+    # staying recognisably the same hue. Yellow on white can never pass,
+    # so it becomes a dark gold.
+    "#FF0000": "#CC0000"   # red   → dark red    (~5.8:1)
+    "#00FF00": "#007D00"   # green → dark green  (~5.6:1)
+    "#FFFF00": "#757500"   # yellow→ dark gold   (~5.0:1)
+
+
+# --------------------------------------------------------------------
+# Reading order — WCAG 1.3.2 / 2.4.3
+# --------------------------------------------------------------------
+reading_order:
+  # "tagged"    → trust the existing tag tree (best with engine=adobe/opendataloader)
+  # "geometric" → top-to-bottom, left-to-right, column-aware
+  # "ml"        → docling layout model (requires docling install)
+  algorithm: "tagged"
+
+  # For "geometric": horizontal gap (pt) that separates columns
+  column_gap_threshold: 30
+
+
+# --------------------------------------------------------------------
+# Tables — WCAG 1.3.1
+# --------------------------------------------------------------------
+tables:
+  # "first_row" → row 0 is always header
+  # "heuristic" → infer headers from font weight + digit patterns
+  # "manual"    → don't guess; require overrides below
+  header_detection: "heuristic"
+
+  # Per-table overrides (1-indexed page numbers)
+  overrides: []
+    # - page: 3
+    #   table_index: 0
+    #   header_rows: 1
+    #   header_cols: 1
+    #   summary: "WCAG conformance results by checkpoint"
+
+
+# --------------------------------------------------------------------
+# Form fields — WCAG 4.1.2
+# --------------------------------------------------------------------
+forms:
+  # "nearby_text" → label is text immediately left/above the widget
+  # "field_name"  → derive from the internal field name
+  # "manual"      → require explicit form_field_labels below
+  label_strategy: "nearby_text"
+
+  form_field_labels: {}
+    # "txt_first_name": "First name"
+    # "chk_consent": "I agree to the terms"
+
+
+# --------------------------------------------------------------------
+# Per-span language detection — WCAG 3.1.2 Language of Parts
+# --------------------------------------------------------------------
+language_detection:
+  enabled: false
+  min_confidence: 0.85       # 0..1
+  library: "lingua"          # "lingua" (more accurate) | "langdetect" (faster)
+
+
+# --------------------------------------------------------------------
+# Validation
+# --------------------------------------------------------------------
+validation:
+  run_verapdf: true
+  # Path to the veraPDF launcher. Defaults assume `scripts/install-verapdf.ps1`
+  # (Windows) or `scripts/install-verapdf.sh` (Linux/macOS) was run, placing
+  # the launcher under tools/verapdf/. Linux/macOS users should drop the
+  # `.bat` suffix (or set to "verapdf" if installed system-wide).
+  verapdf_path: "./tools/verapdf/verapdf.bat"
+  profile: "ua1"             # "ua1" (PDF/UA-1) | "wcag" (WCAG 2.2)
+  fail_on_error: false
+
+
+# --------------------------------------------------------------------
+# Output
+# --------------------------------------------------------------------
+output:
+  directory: "./output"
+  suffix: "_a11y"            # <stem><suffix>.pdf
+  write_report: true         # <stem>_report.json
+  backup_originals: true     # <stem>_original.pdf

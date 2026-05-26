@@ -1,0 +1,31 @@
+# Build context trimming for webapp/Dockerfile (context = project root).
+.git
+.gitignore
+
+# Python caches
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Local environments
+.venv/
+venv/
+.conda/
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Large / irrelevant data — not needed inside the image
+output/
+tools/
+test.pdf
+# (examples/ is intentionally NOT excluded — it ships the demo PDF.)
+
+# Generated job artefacts
+webapp/jobs/
+
+# Secrets — never bake credentials into the image
+config/adobe_api.txt

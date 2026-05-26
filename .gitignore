@@ -1,0 +1,39 @@
+# Python bytecode caches
+__pycache__/
+*.pyc
+*.pyo
+
+# Pipeline temp files (cleaned up by the pipeline's finally block,
+# but ignore them in case of crash)
+.tmp_*
+
+# Generated remediation output — regeneratable, never tracked.
+# The pipeline recreates output/ on every run.
+output/
+
+# Local conda envs / venvs
+.venv/
+venv/
+.conda/
+
+# IDE
+.vscode/
+.idea/
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Locally installed veraPDF (30 MB Java app — reinstallable from upstream)
+tools/verapdf-installer.zip
+tools/verapdf-greenfield-*/
+adobe_api.txt
+
+# Internal tech-writer guide — kept local only
+TECH_WRITER_GUIDE.md
+
+# Web app job working dirs (uploads + per-job results)
+webapp/jobs/
+
+# Local docker-compose env overrides (personal VLM URL, model, API key)
+webapp/.env
