@@ -1,5 +1,25 @@
 # pdf_a11y — Programmatic PDF Accessibility Remediation
 
+[![veraPDF 1.30.1 verified](https://img.shields.io/badge/veraPDF-1.30.1%20verified-brightgreen)](https://verapdf.org/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![GHCR image](https://img.shields.io/badge/ghcr.io-pdf--accessibility-2496ED?logo=docker&logoColor=white)](https://github.com/adamopoulosa1980/pdf_accessibility/pkgs/container/pdf-accessibility)
+[![Docker Hub image](https://img.shields.io/docker/v/adamopoa/pdf-accessibility?logo=docker&label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/adamopoa/pdf-accessibility)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/alexadamopoulos)
+
+> **Take any untagged PDF → WCAG 2.2 / PDF/UA-1 / WTPDF 1.0 compliant in
+> ~5 minutes. 100% local. No Adobe subscription, no cloud round-trip, no
+> data leaves your network.**
+
+Maintained by **[ASSERT I.K.E.](mailto:info@assert.gr)** — sponsor the
+open-source side via [☕ Buy Me a Coffee](https://buymeacoffee.com/alexadamopoulos),
+or reach out about on-premises deployment, local VLM tuning, and bulk
+remediation projects. See [Funding & paid services](#funding--paid-services)
+below for what your support enables.
+
+![pdf_a11y web app — upload form with VLM connection check and the remediation start button](UI.png)
+
+---
+
 A modular pipeline that takes an existing (often untagged) PDF and produces
 a **WCAG 2.2 / PDF/UA-1 (ISO 14289-1) / WTPDF 1.0 Accessibility** compliant
 document — **without any paid service**.
@@ -130,7 +150,21 @@ remediated PDF plus veraPDF reports. The container bundles **everything** —
 Python, a Java runtime (for `opendataloader`), and veraPDF. The only external
 dependency is a vision-model endpoint, and its URL is configurable per upload.
 
-### Quick start
+### Quick start — pull the published image (no build)
+
+```bash
+docker run -d --name pdf-a11y -p 8000:8000 \
+  -e VLM_BASE_URL="http://your-vlm-host:1234/v1" \
+  -e VLM_MODEL="qwen/qwen3-vl-30b" \
+  -v pdf-a11y-jobs:/data/jobs \
+  ghcr.io/adamopoulosa1980/pdf-accessibility:latest
+```
+
+The same image is mirrored to Docker Hub as
+`adamopoa/pdf-accessibility:latest` if you prefer.
+Pinned versions (`:v2.2`, `:v2.3`, …) are published on every release tag.
+
+### Quick start — build locally (active development)
 
 From the **`webapp/`** directory:
 
@@ -163,8 +197,13 @@ docker run -d --name pdf-a11y -p 8000:8000 \
    do not).
 3. **Start remediation** — a live checklist shows each pipeline step; a large
    document takes 5–10 minutes.
+
+   ![Remediation progress — green-tick checklist of completed pipeline stages with an active veraPDF validation pass](progress.png)
+
 4. **Download** — the remediated PDF plus the veraPDF PDF/UA-1 and WTPDF
    reports, each with a pass/fail badge.
+
+   ![Remediation complete — both PDF/UA-1 and WTPDF 1.0 Accessibility show "compliant" pills, with download cards for the remediated PDF and the two veraPDF reports](results.png)
 5. **Review image descriptions** *(optional)* — a button on the results card
    opens a thumbnail grid of every image the AI processed. Edit the
    description, mark it decorative, or accept it as-is; clicking **Apply
@@ -203,7 +242,9 @@ to `opendataloader` in the web app (free, local, no keys).
 
 ## Run it 2 — Headless API (CI/CD)
 
-The job API needs no browser. Interactive OpenAPI docs are at **`/docs`**.
+The job API needs no browser. Interactive OpenAPI docs are at **`/docs`**:
+
+![FastAPI auto-generated OpenAPI docs — every endpoint of the headless API listed with try-it-out forms](openapi.png)
 
 | Method & path | Purpose |
 | --- | --- |
@@ -538,6 +579,15 @@ pipeline gates on veraPDF (the ISO reference) and leaves PAC for human sign-off.
 ---
 
 ## Human-in-the-loop workflow
+
+The web app's **Review image descriptions** screen lets a non-technical
+reviewer audit every AI-generated alt text in a single grid, edit
+descriptions, or mark images decorative — then re-run the pipeline with
+the corrections merged in:
+
+![Review image descriptions — grid of every image the AI processed with its generated alt text, plus per-image Edit description / Mark decorative actions and All / Needs review / Described / Decorative filter tabs](humanintheloop.jpg)
+
+For the headless / CLI path:
 
 1. **First pass** — run with defaults. Inspect `<name>_report.json` and
    `<name>_images_review.csv` for items that need decisions.

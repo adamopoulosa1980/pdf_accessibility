@@ -1,0 +1,85 @@
+name: Build and publish container image
+
+# Triggered manually, or automatically on a v*.* tag push.
+# Builds the webapp container and pushes it to BOTH GitHub Container
+# Registry (ghcr.io) and Docker Hub.
+#
+# Required secrets (set under repo Settings -> Secrets and variables -> Actions):
+#   DOCKERHUB_USERNAME   - your Docker Hub login
+#   DOCKERHUB_TOKEN      - a Docker Hub Personal Access Token (write scope)
+#
+# GHCR uses the built-in GITHUB_TOKEN with `packages: write` permission below
+# and needs no extra secret.
+
+on:
+  push:
+    tags:
+      - "v*.*"
+      - "v*.*.*"
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: pdf-accessibility
+  # Docker Hub namespace (user or org) where the image is published.
+  DOCKERHUB_NAMESPACE: adamopoa
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # required for GHCR push
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Two registry namespaces; the action mirrors all tags to both.
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+            ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+          # `latest` on the default branch + the literal vX.Y(.Z) tag on
+          # tag pushes. `edge` on main pushes (for nightly testers).
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: webapp/Dockerfile
+          push: true
+          # linux/amd64 only for now: the project's veraPDF JRE base
+          # is x86_64. Add linux/arm64 once the JRE/veraPDF combo is
+          # tested on ARM.
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
