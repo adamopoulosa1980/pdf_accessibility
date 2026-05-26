@@ -1,5 +1,6 @@
 # pdf_a11y — Programmatic PDF Accessibility Remediation
 
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![veraPDF 1.30.1 verified](https://img.shields.io/badge/veraPDF-1.30.1%20verified-brightgreen)](https://verapdf.org/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![GHCR image](https://img.shields.io/badge/ghcr.io-pdf--accessibility-2496ED?logo=docker&logoColor=white)](https://github.com/adamopoulosa1980/pdf_accessibility/pkgs/container/pdf-accessibility)
@@ -150,6 +151,8 @@ HTTP API** for CI/CD, and a **command-line tool** / Python library.
 - [What it does NOT do](#what-it-does-not-do)
 - [Troubleshooting](#troubleshooting)
 - [Funding & paid services](#funding--paid-services)
+- [Container security posture](#container-security-posture)
+- [License](#license)
 - [Liability & disclaimer](#liability--disclaimer)
 
 ---
@@ -835,6 +838,39 @@ sector deployment with no acceptable-risk register), `info@assert.gr`
 can build you a custom image on a hardened JRE base (Eclipse Temurin
 on Ubuntu Noble, or a Distroless multi-stage). Otherwise, the published
 image is fit for production use as-is.
+
+---
+
+## License
+
+`pdf_a11y` is released under the **Apache License, Version 2.0**.
+See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for
+attribution.
+
+Practically, this means:
+
+- You may **use, modify, distribute, and embed** the pipeline in your
+  own products — open-source or proprietary — without paying anyone.
+- You must **retain the copyright notice** and the LICENSE/NOTICE files
+  in copies you distribute, and indicate any substantive changes.
+- The Apache-2.0 **patent grant** protects you from patent claims from
+  contributors regarding their contributions.
+- The software is provided **"AS IS"** with no warranty — see the
+  Liability section below for the long-form version.
+
+**Contributions** are welcomed under the same Apache-2.0 license — see
+[CONTRIBUTING.md](CONTRIBUTING.md). No separate Contributor License
+Agreement is required (inbound = outbound).
+
+**What stays paid:**
+
+The license makes the *code* free. It does not give anyone our time,
+our responsiveness, an SLA, an NDA-able relationship for sensitive
+document portfolios, a contractual indemnity, or a commitment to ship
+your feature by a specific date. Those are what
+**[ASSERT I.K.E.](mailto:info@assert.gr)** sells — see
+[Commercial services](#commercial-services) and
+[Funding & paid services](#funding--paid-services).
 
 ---
 

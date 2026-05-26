@@ -1,0 +1,26 @@
+pdf_a11y - Programmatic PDF Accessibility Remediation
+Copyright 2026 ASSERT I.K.E. and contributors
+
+This product is licensed under the Apache License, Version 2.0
+(see the accompanying LICENSE file).
+
+----------------------------------------------------------------------
+
+External tooling invoked at runtime (not bundled in source form):
+
+- veraPDF (PDF/UA-1 and WTPDF 1.0 Accessibility validation)
+  https://verapdf.org/ - GPL v3 and MPL v2 (dual licensed)
+  Installed at runtime via the bundled scripts/install-verapdf.{sh,ps1}
+  or by the Docker image's build step.
+
+- opendataloader-pdf (structure tagger)
+  https://github.com/opendataloader-project/opendataloader-pdf
+  Apache License 2.0
+  Installed as a Python wheel dependency (see requirements.txt).
+
+Python dependencies (FastAPI, pikepdf, PyMuPDF, openai, anthropic,
+pydantic, etc.) carry their own licenses; see requirements.txt and
+each upstream project for details.
+
+Maintainer: ASSERT I.K.E. - info@assert.gr
+Source:     https://github.com/adamopoulosa1980/pdf_accessibility
