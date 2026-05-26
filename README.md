@@ -6,15 +6,90 @@
 [![Docker Hub image](https://img.shields.io/docker/v/adamopoa/pdf-accessibility?logo=docker&label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/adamopoa/pdf-accessibility)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/alexadamopoulos)
 
-> **Take any untagged PDF → WCAG 2.2 / PDF/UA-1 / WTPDF 1.0 compliant in
-> ~5 minutes. 100% local. No Adobe subscription, no cloud round-trip, no
-> data leaves your network.**
+> **Programmatic PDF accessibility remediation for organisations facing
+> the EU Accessibility Act, US Section 508, ADA, and WCAG 2.2 audits —
+> without sending sensitive documents to anyone's cloud. WCAG 2.2 /
+> PDF/UA-1 / WTPDF 1.0 compliant in ~5 minutes per document.
+> Validator-verified by veraPDF. Open source.**
 
-Maintained by **[ASSERT I.K.E.](mailto:info@assert.gr)** — sponsor the
-open-source side via [☕ Buy Me a Coffee](https://buymeacoffee.com/alexadamopoulos),
-or reach out about on-premises deployment, local VLM tuning, and bulk
-remediation projects. See [Funding & paid services](#funding--paid-services)
-below for what your support enables.
+## Who this is for
+
+- **Engineering & DevOps teams** wiring PDF accessibility into existing
+  CI/CD pipelines or document-processing back-ends. Headless HTTP API,
+  CLI, and Python library on the same engine.
+- **Compliance, legal & accessibility officers** preparing a document
+  portfolio for an **EU EAA**, **US Section 508**, **ADA**, or
+  **WCAG 2.2** audit — without €50–150-per-page manual remediation costs
+  or sending originals to a third-party cloud service.
+- **Document management & EDM vendors** (DMS, intranet platforms,
+  publishing tools) embedding accessibility remediation as a feature
+  inside their own product — on-premises, no per-document SaaS fee.
+
+## Why now
+
+The **EU Accessibility Act (Directive 2019/882)** has been enforceable
+since **28 June 2025**, requiring accessible digital content from any
+private-sector body trading in the EU. The **US Section 508 Refresh**
+and incoming **EN 301 549 v3.2.1** procurement standard tighten the
+same requirements for public-sector and supplier ecosystems. A document
+portfolio that fails a screen-reader audit is now a **compliance
+liability** for any organisation that publishes PDFs at scale —
+universities, banks, insurers, public-sector bodies, regulated
+enterprises.
+
+## Commercial services
+
+The open-source pipeline is the whole engine — fully usable, fully
+self-hostable, no feature paywall. **[ASSERT I.K.E.](mailto:info@assert.gr)**
+sells time and judgment around it, not gated features. Reach out when
+you need:
+
+- an **air-gapped or on-premises deployment** with a documented runbook;
+- a **local vision model provisioned and tuned** for your document
+  volume and GPU budget (vLLM, LM Studio, llama.cpp);
+- a **bulk remediation of an existing PDF portfolio**, with the
+  human-in-the-loop alt-text review process operated as a service;
+- **prioritised feature work** on a specific milestone (MathML, OCR for
+  scanned PDFs, EN 301 549 profile, PDF/UA-2 support).
+
+Casual open-source support via
+[☕ Buy Me a Coffee](https://buymeacoffee.com/alexadamopoulos). Full
+service breakdown: [Funding & paid services](#funding--paid-services).
+
+## How we keep it honest
+
+Design choices that matter to your security, compliance, and engineering
+review — written for the technical reader your business stakeholder will
+forward this page to:
+
+- **Validator-gated output.** Every remediated PDF passes through
+  **veraPDF** (PDF/UA-1 and WTPDF 1.0 profiles) inside the pipeline. A
+  document that does not pass is returned with its veraPDF rule failures
+  attached; AI output is never marketed as "compliant" without machine-
+  checkable proof.
+- **Deterministic core, AI only at the edges.** Tagging, struct-tree
+  fixes, contrast remediation, language detection, the WTPDF profile
+  fixer, and the validator pass are all deterministic code paths. A
+  vision-language model is invoked **only** for image alt text — and
+  every generated description is reviewable + overridable through the
+  [human-in-the-loop screen](#human-in-the-loop-workflow) before the
+  PDF ships.
+- **Audit-ready artefacts.** Each run emits a JSON report (every
+  remediation decision with its WCAG / PDF/UA / WTPDF citation) plus
+  both veraPDF HTML reports — these are the artefacts an accessibility
+  auditor or procurement reviewer actually wants to see.
+- **No mandatory cloud round-trip.** The default VLM is any
+  OpenAI-compatible local server (LM Studio, vLLM, llama.cpp, Ollama).
+  Documents do not leave your network unless you deliberately point at
+  a cloud provider.
+- **Open source, end to end.** Every fixer, every API endpoint, the
+  full Docker recipe, and the security posture are in this repo. Your
+  security team can read it before deployment instead of trusting a
+  vendor's word.
+- **Honest about scope.** [§ What it does NOT do](#what-it-does-not-do)
+  lists what is best-effort or out of scope today (complex multi-column
+  layouts, scanned PDFs without OCR, MathML, …). Read it before
+  budgeting — we would rather lose a deal than ship a surprise.
 
 ![pdf_a11y web app — upload form with VLM connection check and the remediation start button](UI.png)
 
@@ -40,17 +115,26 @@ then validates the result with **veraPDF**.
 It runs three ways: a **point-and-click web app** (Docker), a **headless
 HTTP API** for CI/CD, and a **command-line tool** / Python library.
 
-> **Reference result.** On a representative 200+ page user-guide PDF with
-> several hundred images, the pipeline output passes **veraPDF PDF/UA-1**
-> and **veraPDF WTPDF 1.0 Accessibility** with **0 failures**, and shows
-> **0 failures in PAC 2024** (a few hundred residual PAC *warnings* — soft,
-> human-review tagging-style flags that are not ISO violations; see
-> [Validators](#validators--what-compliant-means)).
+> **Reference result, reproducible in 10 minutes.** The repo bundles an
+> actual European Commission publication — *A short guide to the EU*
+> ([examples/](examples/), 36 pages, ~10 MB, public domain) — as a demo
+> input. With default settings the pipeline takes it to **0 of 106
+> failures on veraPDF PDF/UA-1** and **0 of 1723 failures on veraPDF
+> WTPDF 1.0 Accessibility**. PAC 2024 reports 0 failures plus a few
+> hundred soft *warnings* — soft, human-review tagging-style flags that
+> are not ISO violations; see
+> [Validators](#validators--what-compliant-means). Run it yourself
+> via the steps under
+> [Try it on the bundled example](#try-it-on-the-bundled-example).
 
 ---
 
 ## Contents
 
+- [Who this is for](#who-this-is-for)
+- [Why now](#why-now)
+- [Commercial services](#commercial-services)
+- [How we keep it honest](#how-we-keep-it-honest)
 - [Why this is an Adobe Autotag alternative](#why-this-is-an-adobe-autotag-alternative)
 - [What it actually fixes](#what-it-actually-fixes)
 - [Run it 1 — Web app (Docker)](#run-it-1--web-app-docker)
